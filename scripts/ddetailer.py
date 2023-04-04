@@ -60,20 +60,30 @@ def startup():
         print("No detection models found, downloading...")
         bbox_path = os.path.join(dd_models_path, "bbox")
         segm_path = os.path.join(dd_models_path, "segm")
+        # bbox
         load_file_from_url(
             "https://huggingface.co/dustysys/ddetailer/resolve/main/mmdet/bbox/mmdet_anime-face_yolov3.pth",
             bbox_path,
         )
         load_file_from_url(
-            "https://huggingface.co/dustysys/ddetailer/raw/main/mmdet/bbox/mmdet_anime-face_yolov3.py",
+            "https://raw.githubusercontent.com/Bing-su/dddetailer/master/config/mmdet_anime-face_yolov3.py",
             bbox_path,
         )
+        # segm
         load_file_from_url(
-            "https://huggingface.co/dustysys/ddetailer/resolve/main/mmdet/segm/mmdet_dd-person_mask2former.pth",
+            "https://github.com/Bing-su/dddetailer/releases/download/segm/mmdet_dd-person_mask2former.pth",
             segm_path,
         )
         load_file_from_url(
-            "https://huggingface.co/dustysys/ddetailer/raw/main/mmdet/segm/mmdet_dd-person_mask2former.py",
+            "https://raw.githubusercontent.com/Bing-su/dddetailer/master/config/mmdet_dd-person_mask2former.py",
+            segm_path,
+        )
+        load_file_from_url(
+            "https://raw.githubusercontent.com/Bing-su/dddetailer/master/config/mask2former_r50_8xb2-lsj-50e_coco-panoptic.py",
+            segm_path,
+        )
+        load_file_from_url(
+            "https://raw.githubusercontent.com/Bing-su/dddetailer/master/config/coco_panoptic.py",
             segm_path,
         )
 
