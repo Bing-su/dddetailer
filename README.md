@@ -1,4 +1,4 @@
-# Detection Detailer
+# 돚거 Detection Detailer
 An object detection and auto-mask extension for [Stable Diffusion web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui). See [Installation](https://github.com/dustysys/ddetailer#installation).
 
 ![adoringfan](/misc/ddetailer_example_1.png)

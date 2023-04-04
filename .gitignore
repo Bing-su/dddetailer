@@ -6,3 +6,5 @@ __pycache__
 /log
 .vscode
 /test-cases
+.mypy_cache/
+.ruff_cache/
