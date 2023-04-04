@@ -15,9 +15,16 @@ def check_mmcv() -> bool:
 
     import mmcv
 
-    if version.parse(mmcv.__version__) >= version.parse("2.0.0"):
-        return True
-    return False
+    return version.parse(mmcv.__version__) >= version.parse("2.0.0rc1")
+
+
+def check_mmdet() -> bool:
+    if not is_installed("mmdet"):
+        return False
+
+    import mmdet
+
+    return version.parse(mmdet.__version__) >= version.parse("3.0.0rc0")
 
 
 def install():
@@ -33,11 +40,11 @@ def install():
         print("Installing pycocotools...")
         run("pip install aiartchan-pycocotools")
 
-    if not is_installed("mmdet"):
+    if not check_mmdet():
         print("Installing mmdet...")
-        run("pip install mmdet")
+        run("pip install mmdet==3.0.0rc6")
 
-    if not is_installed("openmim"):
+    if not is_installed("mim"):
         print("Installing openmim...")
         run("pip install openmim")
 

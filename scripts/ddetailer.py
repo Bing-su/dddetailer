@@ -794,7 +794,7 @@ def create_segmasks(results):
 
 import mmcv
 from mmdet.apis import inference_detector, init_detector
-from mmdet.core import get_classes
+from mmdet.evaluation import get_classes
 
 
 def get_device():
@@ -816,7 +816,9 @@ def inference_mmdet_segm(image, modelname, conf_thres, label):
     model_checkpoint = modelpath(modelname)
     model_config = os.path.splitext(model_checkpoint)[0] + ".py"
     model_device = get_device()
-    model = init_detector(model_config, model_checkpoint, device=model_device)
+    model = init_detector(
+        model_config, model_checkpoint, palette="random", device=model_device
+    )
     mmdet_results = inference_detector(model, np.array(image))
     bbox_results, segm_results = mmdet_results
     dataset = modeldataset(modelname)
@@ -844,7 +846,9 @@ def inference_mmdet_bbox(image, modelname, conf_thres, label):
     model_checkpoint = modelpath(modelname)
     model_config = os.path.splitext(model_checkpoint)[0] + ".py"
     model_device = get_device()
-    model = init_detector(model_config, model_checkpoint, device=model_device)
+    model = init_detector(
+        model_config, model_checkpoint, palette="random", device=model_device
+    )
     results = inference_detector(model, np.array(image))
     cv2_image = np.array(image)
     cv2_image = cv2_image[:, :, ::-1].copy()
