@@ -651,6 +651,7 @@ def create_segmask_preview(results, image):
     labels = results[0]
     bboxes = results[1]
     segms = results[2]
+    scores = results[3]
 
     cv2_image = np.array(image)
     cv2_image = cv2_image[:, :, ::-1].copy()
@@ -670,7 +671,7 @@ def create_segmask_preview(results, image):
         cv2_image = np.where(cv2_mask_rgb == 255, color_image, cv2_image)
         text_color = tuple([int(x) for x in (color[0][0] - 100)])
         name = labels[i]
-        score = bboxes[i][4]
+        score = scores[i]
         score = str(score)[:4]
         text = name + ":" + score
         cv2.putText(
@@ -820,6 +821,15 @@ def inference_mmdet_segm(image, modelname, conf_thres, label):
         model_config, model_checkpoint, palette="random", device=model_device
     )
     mmdet_results = inference_detector(model, np.array(image))
+
+    print("----------------------------------------------------")
+    print()
+    print(f"output: {mmdet_results}")
+    print(f"dir: {dir(mmdet_results)}")
+    print(f"input shape: {np.array(image).shape}")
+    print()
+    print("----------------------------------------------------")
+
     bbox_results, segm_results = mmdet_results
     dataset = modeldataset(modelname)
     classes = get_classes(dataset)
@@ -849,28 +859,37 @@ def inference_mmdet_bbox(image, modelname, conf_thres, label):
     model = init_detector(
         model_config, model_checkpoint, palette="random", device=model_device
     )
-    results = inference_detector(model, np.array(image))
+    output = inference_detector(model, np.array(image)).pred_instances
     cv2_image = np.array(image)
     cv2_image = cv2_image[:, :, ::-1].copy()
     cv2_gray = cv2.cvtColor(cv2_image, cv2.COLOR_BGR2GRAY)
 
+    print("----------------------------------------------------")
+    print()
+    print(f"output: {output}")
+    print(f"dir: {dir(output)}")
+    print(f"input shape: {cv2_image.shape}")
+    print()
+    print("----------------------------------------------------")
+
     segms = []
-    for x0, y0, x1, y1, _conf in results[0]:
+    for x0, y0, x1, y1 in output.bboxes:
         cv2_mask = np.zeros((cv2_gray.shape), np.uint8)
         cv2.rectangle(cv2_mask, (int(x0), int(y0)), (int(x1), int(y1)), 255, -1)
         cv2_mask_bool = cv2_mask.astype(bool)
         segms.append(cv2_mask_bool)
 
-    n, m = results[0].shape
+    n, m = output.bboxes.shape
     if n == 0:
-        return [[], [], []]
-    bboxes = np.vstack(results[0])
-    filter_inds = np.where(bboxes[:, -1] > conf_thres)[0]
-    results = [[], [], []]
+        return [[], [], [], []]
+    bboxes = output.bboxes
+    filter_inds = np.where(output.scores > conf_thres)[0]
+    results = [[], [], [], []]
     for i in filter_inds:
         results[0].append(label)
         results[1].append(bboxes[i])
         results[2].append(segms[i])
+        results[3].append(output.scores[i])
 
     return results
 
