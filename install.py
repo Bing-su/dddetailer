@@ -40,7 +40,10 @@ def check_mmdet() -> bool:
     if not is_installed("mmdet"):
         return False
 
-    import mmdet
+    try:
+        import mmdet
+    except AssertionError:
+        return False
 
     return version.parse(mmdet.__version__) >= version.parse("3.0.0rc6")
 
