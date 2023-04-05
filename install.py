@@ -31,7 +31,13 @@ def check_mmcv() -> bool:
     if not is_installed("mmcv"):
         return False
 
-    import mmcv
+    try:
+        import mmcv
+    except Exception:
+        return False
+
+    if not hasattr(mmcv, "__version__"):
+        return False
 
     return version.parse(mmcv.__version__) >= version.parse("2.0.0rc4")
 
@@ -42,7 +48,10 @@ def check_mmdet() -> bool:
 
     try:
         import mmdet
-    except AssertionError:
+    except Exception:
+        return False
+
+    if not hasattr(mmdet, "__version__"):
         return False
 
     return version.parse(mmdet.__version__) >= version.parse("3.0.0rc6")
@@ -54,19 +63,19 @@ def install_pycocotools():
 
     if system not in ["Windows", "Linux"] or machine not in ["AMD64", "x86_64"]:
         print("Installing pycocotools from pypi...")
-        run("pip install pycocotools")
+        run("pip install pycocotools", live=True)
         return
 
     links = pycocotools[system]
     version = sys.version_info[:2]
     if version not in links:
         print("Installing pycocotools from pypi...")
-        run("pip install pycocotools")
+        run("pip install pycocotools", live=True)
         return
 
     url = links[version]
     print("Installing pycocotools...")
-    run(f"pip install {url}")
+    run(f"pip install {url}", live=True)
 
 
 def install():
@@ -74,20 +83,20 @@ def install():
         print("Installing mmcv...")
         torch_version = torch.__version__
         if torch_version in mmcv_url:
-            run(f"pip install mmcv -f {mmcv_url[torch_version]}")
+            run(f"pip install mmcv -f {mmcv_url[torch_version]}", live=True)
         else:
-            run("pip install mmcv==2.0.0rc4")
+            run("pip install mmcv==2.0.0rc4", live=True)
 
     if not is_installed("pycocotools"):
         install_pycocotools()
 
     if not check_mmdet():
         print("Installing mmdet...")
-        run("pip install mmdet==3.0.0rc6")
+        run("pip install mmdet==3.0.0rc6", live=True)
 
     if not is_installed("mim"):
         print("Installing openmim...")
-        run("pip install openmim")
+        run("pip install openmim", live=True)
 
 
 install()
