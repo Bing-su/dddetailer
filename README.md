@@ -1,4 +1,20 @@
 # 돚거 Detection Detailer
+
+Dotgeo(hijack) Detection Detailer
+
+ddetailer with torch 2.0, mmcv 2.0, mmdet 3.0
+
+## Installation
+
+1. remove original ddetailer extension
+2. remove original `stable-diffusion-webui/models/mmdet` folder
+3. install from the extensions tab with url `https://github.com/Bing-su/dddetailer`
+
+## Problem
+
+The predictive accuracy of the segmentation model has become very poor.
+
+# Detection Detailer
 An object detection and auto-mask extension for [Stable Diffusion web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui). See [Installation](https://github.com/dustysys/ddetailer#installation).
 
 ![adoringfan](/misc/ddetailer_example_1.png)
