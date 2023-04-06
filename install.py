@@ -1,15 +1,9 @@
 import platform
 import sys
 
-import torch
 from packaging import version
 
-from launch import is_installed, run
-
-mmcv_url = {
-    "2.0.0+cu117": "https://download.openmmlab.com/mmcv/dist/cu117/torch2.0.0/index.html",
-    "2.0.0+cu118": "https://download.openmmlab.com/mmcv/dist/cu118/torch2.0.0/index.html",
-}
+from launch import is_installed, run, run_pip
 
 pycocotools = {
     "Windows": {
@@ -40,7 +34,7 @@ def check_mmcv() -> bool:
     if not hasattr(mmcv, "__version__"):
         return False
 
-    return version.parse(mmcv.__version__) >= version.parse("2.0.0rc4")
+    return version.parse(mmcv.__version__) >= version.parse("2.0.0")
 
 
 def check_mmdet() -> bool:
@@ -55,7 +49,7 @@ def check_mmdet() -> bool:
     if not hasattr(mmdet, "__version__"):
         return False
 
-    return version.parse(mmdet.__version__) >= version.parse("3.0.0rc6")
+    return version.parse(mmdet.__version__) >= version.parse("3.0.0")
 
 
 def install_pycocotools():
@@ -80,24 +74,19 @@ def install_pycocotools():
 
 
 def install():
-    if not check_mmcv():
-        print("Installing mmcv...")
-        torch_version = torch.__version__
-        if torch_version in mmcv_url:
-            run(f'"{python}" -m pip install -U mmcv -f {mmcv_url[torch_version]}', live=True)
-        else:
-            run(f'"{python}" -m pip install mmcv==2.0.0rc4', live=True)
-
     if not is_installed("pycocotools"):
         install_pycocotools()
 
+    if not is_installed("mim"):
+        run_pip("install openmim", desc="opemmim")
+
+    if not check_mmcv():
+        print("Installing mmcv...")
+        run(f'"{python}" -m mim install -U mmcv==2.0.0', live=True)
+
     if not check_mmdet():
         print("Installing mmdet...")
-        run(f'"{python}" -m pip install mmdet==3.0.0rc6', live=True)
-
-    if not is_installed("mim"):
-        print("Installing openmim...")
-        run(f'"{python}" -m pip install openmim', live=True)
+        run(f'"{python}" -m mim install mmdet==3.0.0', live=True)
 
 
 install()
