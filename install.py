@@ -3,7 +3,7 @@ import sys
 
 from packaging import version
 
-from launch import is_installed, run, run_pip
+from launch import is_installed, python, run, run_pip
 
 pycocotools = {
     "Windows": {
@@ -19,7 +19,6 @@ pycocotools = {
         (3, 11): "https://github.com/Bing-su/dddetailer/releases/download/pycocotools/pycocotools-2.0.6-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
     },
 }
-python = sys.executable
 
 
 def check_mmcv() -> bool:
@@ -78,15 +77,17 @@ def install():
         install_pycocotools()
 
     if not is_installed("mim"):
-        run_pip("install openmim", desc="opemmim")
+        run_pip("install openmim", desc="openmim")
 
     if not check_mmcv():
+        print("Uninstalling mmcv... (if installed)")
+        run(f'"{python}" -m pip uninstall -y mmcv mmcv-full mmdet', live=True)
         print("Installing mmcv...")
         run(f'"{python}" -m mim install -U mmcv==2.0.0', live=True)
 
     if not check_mmdet():
         print("Installing mmdet...")
-        run(f'"{python}" -m mim install mmdet==3.0.0', live=True)
+        run(f'"{python}" -m mim install -U mmdet==3.0.0', live=True)
 
 
 install()
