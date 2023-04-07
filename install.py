@@ -1,9 +1,18 @@
 import platform
 import sys
+from pathlib import Path
 
 from packaging import version
 
-from launch import is_installed, python, run, run_pip
+from launch import (
+    check_run_python,
+    extensions_dir,
+    is_installed,
+    python,
+    run,
+    run_pip,
+    skip_install,
+)
 
 pycocotools = {
     "Windows": {
@@ -21,34 +30,28 @@ pycocotools = {
 }
 
 
-def check_mmcv() -> bool:
-    if not is_installed("mmcv"):
-        return False
+def check_ddetailer() -> bool:
+    original = Path(extensions_dir, "ddetailer")
+    return not original.exists()
 
+
+def check_install() -> bool:
     try:
         import mmcv
-    except Exception:
-        return False
-
-    if not hasattr(mmcv, "__version__"):
-        return False
-
-    return version.parse(mmcv.__version__) >= version.parse("2.0.0")
-
-
-def check_mmdet() -> bool:
-    if not is_installed("mmdet"):
-        return False
-
-    try:
         import mmdet
+        from mmdet.evaluation import get_classes
     except Exception:
         return False
 
-    if not hasattr(mmdet, "__version__"):
+    if not check_run_python("import mmcv, mmdet"):
         return False
 
-    return version.parse(mmdet.__version__) >= version.parse("3.0.0")
+    if not hasattr(mmcv, "__version__") or not hasattr(mmdet, "__version__"):
+        return False
+
+    v1 = version.parse(mmcv.__version__) >= version.parse("2.0.0")
+    v2 = version.parse(mmdet.__version__) >= version.parse("3.0.0")
+    return v1 and v2
 
 
 def install_pycocotools():
@@ -79,15 +82,16 @@ def install():
     if not is_installed("mim"):
         run_pip("install openmim", desc="openmim")
 
-    if not check_mmcv():
-        print("Uninstalling mmcv... (if installed)")
-        run(f'"{python}" -m pip uninstall -y mmcv mmcv-full mmdet', live=True)
-        print("Installing mmcv...")
-        run(f'"{python}" -m mim install -U mmcv==2.0.0', live=True)
-
-    if not check_mmdet():
-        print("Installing mmdet...")
-        run(f'"{python}" -m mim install -U mmdet==3.0.0', live=True)
+    if not check_install():
+        print("Uninstalling mmcv mmdet... (if installed)")
+        run(f'"{python}" -m pip uninstall -y mmcv mmcv-full mmdet mmengine', live=True)
+        print("Installing mmcv mmdet...")
+        run(f'"{python}" -m mim install -U mmcv>=2.0.0 mmdet>=3.0.0', live=True)
 
 
-install()
+if not check_ddetailer():
+    message = "[-] dddetailer: Please remove the original ddetailer extension and 'stable-diffusion-webui/models/mmdet' folder first."
+    raise RuntimeError(message)
+
+if not skip_install:
+    install()
