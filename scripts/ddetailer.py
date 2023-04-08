@@ -56,6 +56,12 @@ def list_models(model_path):
 
 
 def startup():
+    from launch import is_installed, run, python
+
+    if not is_installed("mmdet"):
+        run(f'"{python}" -m pip install openmim', desc="Installing openmim", errdesc="Couldn't install openmim")
+        run(f'"{python}" -m mim install mmcv>=2.0.0 mmdet>=3.0.0', desc="Installing mmdet", errdesc="Couldn't install mmdet")
+
     if len(list_models(dd_models_path)) == 0:
         print("No detection models found, downloading...")
         bbox_path = os.path.join(dd_models_path, "bbox")
