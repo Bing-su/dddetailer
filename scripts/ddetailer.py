@@ -408,6 +408,8 @@ class DetectionDetailerScript(scripts.Script):
         processing.fix_seed(p)
         dd_info = None
         seed = p.seed
+        init_seed = p.seed.copy() if isinstance(p.seed, list) else p.seed
+        init_subseed = p.subseed.copy() if isinstance(p.subseed, list) else p.subseed
         p.batch_size = 1
         ddetail_count = p.n_iter
         p.n_iter = 1
@@ -455,11 +457,15 @@ class DetectionDetailerScript(scripts.Script):
             )
             p.do_not_save_grid = True
             p.do_not_save_samples = True
+
+        infotexts = []
         output_images = []
         state.job_count = ddetail_count
         for n in range(ddetail_count):
             devices.torch_gc()
             start_seed = seed + n
+            dd_info = None
+
             if is_txt2img:
                 print(f"Processing initial image for output generation {n + 1}.")
                 p_txt.seed = start_seed
@@ -620,10 +626,46 @@ class DetectionDetailerScript(scripts.Script):
                 else:
                     print(f"No model {label_a} detections for output generation {n} with current settings.")
             state.job = f"Generation {n + 1} out of {state.job_count}"
-        if dd_info is None:
-            dd_info = info + ", No detections found."
+            if dd_info is None:
+                dd_info = info + ", No detections found."
 
-        return Processed(p, output_images, seed, dd_info)
+            infotexts.append(dd_info)
+
+        if not infotexts:
+            infotexts = [dd_info]
+
+        # infotexts
+        if type(p.prompt) == list:
+            p.all_prompts = [shared.prompt_styles.apply_styles_to_prompt(x, p.styles) for x in p.prompt]
+        else:
+            p.all_prompts = p.batch_size * ddetail_count * [shared.prompt_styles.apply_styles_to_prompt(p.prompt, p.styles)]
+
+        if type(p.negative_prompt) == list:
+            p.all_negative_prompts = [shared.prompt_styles.apply_negative_styles_to_prompt(x, p.styles) for x in p.negative_prompt]
+        else:
+            p.all_negative_prompts = p.batch_size * ddetail_count * [shared.prompt_styles.apply_negative_styles_to_prompt(p.negative_prompt, p.styles)]
+
+        if type(init_seed) == list:
+            p.all_seeds = init_seed
+        else:
+            p.all_seeds = [int(init_seed) + (x if p.subseed_strength == 0 else 0) for x in range(len(p.all_prompts))]
+
+        if type(init_subseed) == list:
+            p.all_subseeds = init_subseed
+        else:
+            p.all_subseeds = [int(init_subseed) + x for x in range(len(p.all_prompts))]
+
+        return Processed(
+            p,
+            output_images,
+            seed,
+            infotexts[0],
+            all_prompts=p.all_prompts,
+            all_negative_prompts=p.all_negative_prompts,
+            all_seeds=p.all_seeds,
+            all_subseeds=p.all_subseeds,
+            infotexts=infotexts
+        )
 
 
 def modeldataset(model_shortname):
