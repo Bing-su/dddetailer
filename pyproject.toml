@@ -16,10 +16,14 @@ repository = "https://github.com/Bing-su/dddetailer"
 profile = "black"
 known_first_party = ["modules", "launch"]
 
+[tool.black]
+line-length = 120
+
 [tool.ruff]
 select = ["A", "B", "C4", "E", "F", "I001", "ISC", "N", "PIE", "PT", "RET", "SIM", "UP", "W"]
 ignore = ["B008", "B905", "E501"]
 unfixable = ["F401"]
+line-length = 120
 
 [tool.ruff.isort]
 known-first-party = ["modules", "launch"]

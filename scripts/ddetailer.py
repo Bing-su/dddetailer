@@ -7,6 +7,7 @@ import numpy as np
 from basicsr.utils.download_util import load_file_from_url
 from PIL import Image
 
+import modules.shared as shared
 from modules import (
     devices,
     images,
@@ -60,7 +61,11 @@ def startup():
 
     if not is_installed("mmdet"):
         run(f'"{python}" -m pip install openmim', desc="Installing openmim", errdesc="Couldn't install openmim")
-        run(f'"{python}" -m mim install mmcv>=2.0.0 mmdet>=3.0.0', desc="Installing mmdet", errdesc="Couldn't install mmdet")
+        run(
+            f'"{python}" -m mim install mmcv>=2.0.0 mmdet>=3.0.0',
+            desc="Installing mmdet",
+            errdesc="Couldn't install mmdet",
+        )
 
     if len(list_models(dd_models_path)) == 0:
         print("No detection models found, downloading...")
@@ -414,10 +419,8 @@ class DetectionDetailerScript(scripts.Script):
         else:
             p_txt = p
             img2img_sampler_name = p_txt.sampler_name
-            if p_txt.sampler_name in [
-                "PLMS",
-                "UniPC",
-            ]:  # PLMS/UniPC do not support img2img so we just silently switch to DDIM
+            # PLMS/UniPC do not support img2img so we just silently switch to DDIM
+            if p_txt.sampler_name in ["PLMS", "UniPC"]:
                 img2img_sampler_name = "DDIM"
             p_txt_prompt = dd_prompt if dd_prompt else p_txt.prompt
             p_txt_neg_prompt = dd_neg_prompt if dd_neg_prompt else p_txt.negative_prompt
@@ -473,17 +476,13 @@ class DetectionDetailerScript(scripts.Script):
             # Optional secondary pre-processing run
             if dd_model_b != "None" and dd_preprocess_b:
                 label_b_pre = "B"
-                results_b_pre = inference(
-                    init_image, dd_model_b, dd_conf_b / 100.0, label_b_pre
-                )
+                results_b_pre = inference(init_image, dd_model_b, dd_conf_b / 100.0, label_b_pre)
                 masks_b_pre = create_segmasks(results_b_pre)
                 masks_b_pre = dilate_masks(masks_b_pre, dd_dilation_factor_b, 1)
                 masks_b_pre = offset_masks(masks_b_pre, dd_offset_x_b, dd_offset_y_b)
                 if len(masks_b_pre) > 0:
                     results_b_pre = update_result_masks(results_b_pre, masks_b_pre)
-                    segmask_preview_b = create_segmask_preview(
-                        results_b_pre, init_image
-                    )
+                    segmask_preview_b = create_segmask_preview(results_b_pre, init_image)
                     shared.state.current_image = segmask_preview_b
                     if opts.dd_save_previews:
                         images.save_image(
@@ -497,9 +496,7 @@ class DetectionDetailerScript(scripts.Script):
                         )
                     gen_count = len(masks_b_pre)
                     state.job_count += gen_count
-                    print(
-                        f"Processing {gen_count} model {label_b_pre} detections for output generation {n + 1}."
-                    )
+                    print(f"Processing {gen_count} model {label_b_pre} detections for output generation {n + 1}.")
                     p.seed = start_seed
                     p.init_images = [init_image]
 
@@ -524,26 +521,20 @@ class DetectionDetailerScript(scripts.Script):
                         init_image = processed.images[0]
 
                 else:
-                    print(
-                        f"No model B detections for output generation {n} with current settings."
-                    )
+                    print(f"No model B detections for output generation {n} with current settings.")
 
             # Primary run
             if dd_model_a != "None":
                 label_a = "A"
                 if dd_model_b != "None" and dd_bitwise_op != "None":
                     label_a = dd_bitwise_op
-                results_a = inference(
-                    init_image, dd_model_a, dd_conf_a / 100.0, label_a
-                )
+                results_a = inference(init_image, dd_model_a, dd_conf_a / 100.0, label_a)
                 masks_a = create_segmasks(results_a)
                 masks_a = dilate_masks(masks_a, dd_dilation_factor_a, 1)
                 masks_a = offset_masks(masks_a, dd_offset_x_a, dd_offset_y_a)
                 if dd_model_b != "None" and dd_bitwise_op != "None":
                     label_b = "B"
-                    results_b = inference(
-                        init_image, dd_model_b, dd_conf_b / 100.0, label_b
-                    )
+                    results_b = inference(init_image, dd_model_b, dd_conf_b / 100.0, label_b)
                     masks_b = create_segmasks(results_b)
                     masks_b = dilate_masks(masks_b, dd_dilation_factor_b, 1)
                     masks_b = offset_masks(masks_b, dd_offset_x_b, dd_offset_y_b)
@@ -551,9 +542,7 @@ class DetectionDetailerScript(scripts.Script):
                         combined_mask_b = combine_masks(masks_b)
                         for i in reversed(range(len(masks_a))):
                             if dd_bitwise_op == "A&B":
-                                masks_a[i] = bitwise_and_masks(
-                                    masks_a[i], combined_mask_b
-                                )
+                                masks_a[i] = bitwise_and_masks(masks_a[i], combined_mask_b)
                             elif dd_bitwise_op == "A-B":
                                 masks_a[i] = subtract_masks(masks_a[i], combined_mask_b)
                             if is_allblack(masks_a[i]):
@@ -582,9 +571,7 @@ class DetectionDetailerScript(scripts.Script):
                         )
                     gen_count = len(masks_a)
                     state.job_count += gen_count
-                    print(
-                        f"Processing {gen_count} model {label_a} detections for output generation {n + 1}."
-                    )
+                    print(f"Processing {gen_count} model {label_a} detections for output generation {n + 1}.")
                     p.seed = start_seed
                     p.init_images = [init_image]
 
@@ -631,9 +618,7 @@ class DetectionDetailerScript(scripts.Script):
                             )
 
                 else:
-                    print(
-                        f"No model {label_a} detections for output generation {n} with current settings."
-                    )
+                    print(f"No model {label_a} detections for output generation {n} with current settings.")
             state.job = f"Generation {n + 1} out of {state.job_count}"
         if dd_info is None:
             dd_info = info + ", No detections found."
@@ -673,9 +658,7 @@ def create_segmask_preview(results, image):
     cv2_image = cv2_image[:, :, ::-1].copy()
 
     for i in range(len(segms)):
-        color = np.full_like(
-            cv2_image, np.random.randint(100, 256, (1, 3), dtype=np.uint8)
-        )
+        color = np.full_like(cv2_image, np.random.randint(100, 256, (1, 3), dtype=np.uint8))
         alpha = 0.2
         color_image = cv2.addWeighted(cv2_image, alpha, color, 1 - alpha, 0)
         cv2_mask = segms[i].astype(np.uint8) * 255
@@ -770,9 +753,7 @@ def combine_masks(masks):
 def on_ui_settings():
     shared.opts.add_option(
         "dd_save_previews",
-        shared.OptionInfo(
-            False, "Save mask previews", section=("ddetailer", "Detection Detailer")
-        ),
+        shared.OptionInfo(False, "Save mask previews", section=("ddetailer", "Detection Detailer")),
     )
     shared.opts.add_option(
         "outdir_ddetailer_previews",
@@ -784,9 +765,7 @@ def on_ui_settings():
     )
     shared.opts.add_option(
         "dd_save_masks",
-        shared.OptionInfo(
-            False, "Save masks", section=("ddetailer", "Detection Detailer")
-        ),
+        shared.OptionInfo(False, "Save masks", section=("ddetailer", "Detection Detailer")),
     )
     shared.opts.add_option(
         "outdir_ddetailer_masks",
@@ -832,9 +811,7 @@ def inference_mmdet_segm(image, modelname, conf_thres, label):
     model_checkpoint = modelpath(modelname)
     model_config = os.path.splitext(model_checkpoint)[0] + ".py"
     model_device = get_device()
-    model = init_detector(
-        model_config, model_checkpoint, palette="random", device=model_device
-    )
+    model = init_detector(model_config, model_checkpoint, device=model_device)
     mmdet_results = inference_detector(model, np.array(image)).pred_instances
     bboxes = mmdet_results.bboxes.numpy()
     segms = mmdet_results.masks.numpy()
@@ -846,7 +823,7 @@ def inference_mmdet_segm(image, modelname, conf_thres, label):
     if n == 0:
         return [[], [], [], []]
     labels = mmdet_results.labels
-    filter_inds = np.where(mmdet_results.scores > conf_thres)[0]
+    filter_inds = np.where(scores > conf_thres)[0]
     results = [[], [], [], []]
     for i in filter_inds:
         results[0].append(label + "-" + classes[labels[i]])
@@ -861,9 +838,7 @@ def inference_mmdet_bbox(image, modelname, conf_thres, label):
     model_checkpoint = modelpath(modelname)
     model_config = os.path.splitext(model_checkpoint)[0] + ".py"
     model_device = get_device()
-    model = init_detector(
-        model_config, model_checkpoint, palette="random", device=model_device
-    )
+    model = init_detector(model_config, model_checkpoint, device=model_device)
     output = inference_detector(model, np.array(image)).pred_instances
     cv2_image = np.array(image)
     cv2_image = cv2_image[:, :, ::-1].copy()
