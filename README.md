@@ -4,6 +4,10 @@ Dotgeo(hijack) Detection Detailer
 
 ddetailer with torch 2.0, mmcv 2.0, mmdet 3.0
 
+integrated with [noahge4/ddetailer](https://github.com/noahge4/ddetailer)
+
+AI실사채널 ChatGPT23님의 [ddetailer 수정본](https://arca.live/b/aireal/72297207) 병합됨
+
 ## Installation
 
 1. remove original ddetailer extension

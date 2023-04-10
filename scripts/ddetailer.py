@@ -406,7 +406,7 @@ class DetectionDetailerScript(scripts.Script):
         dd_neg_prompt=None,
     ):
         processing.fix_seed(p)
-        dd_info = None
+        dd_info = ""
         seed = p.seed
         init_seed = p.seed.copy() if isinstance(p.seed, list) else p.seed
         init_subseed = p.subseed.copy() if isinstance(p.subseed, list) else p.subseed
@@ -416,6 +416,7 @@ class DetectionDetailerScript(scripts.Script):
         p.do_not_save_grid = True
         p.do_not_save_samples = True
         is_txt2img = isinstance(p, StableDiffusionProcessingTxt2Img)
+
         if not is_txt2img:
             orig_image = p.init_images[0]
         else:
@@ -464,7 +465,7 @@ class DetectionDetailerScript(scripts.Script):
         for n in range(ddetail_count):
             devices.torch_gc()
             start_seed = seed + n
-            dd_info = None
+            dd_info = ""
 
             if is_txt2img:
                 print(f"Processing initial image for output generation {n + 1}.")
@@ -474,6 +475,9 @@ class DetectionDetailerScript(scripts.Script):
                 info = processed.info
             else:
                 init_image = orig_image
+
+            if opts.enable_pnginfo:
+                init_image.info["parameters"] = info
 
             output_images.append(init_image)
             masks_a = []
@@ -595,7 +599,7 @@ class DetectionDetailerScript(scripts.Script):
                             )
 
                         processed = processing.process_images(p)
-                        if dd_info is None:
+                        if not dd_info:
                             dd_info = info + (
                                 f', DDetailer prompt: "{dd_prompt}", DDetailer neg prompt: "{dd_neg_prompt}", '
                                 f'DDetailer model a: "{dd_model_a}", DDetailer conf a: {dd_conf_a}, '
@@ -610,10 +614,15 @@ class DetectionDetailerScript(scripts.Script):
                         p.init_images = processed.images
 
                     if gen_count > 0:
-                        output_images[n] = processed.images[0]
+                        final_image = processed.images[0]
+
+                        if opts.enable_pnginfo:
+                            final_image.info["parameters"] = dd_info
+                        output_images[n] = final_image
+
                         if opts.samples_save:
                             images.save_image(
-                                processed.images[0],
+                                final_image,
                                 p.outpath_samples,
                                 "",
                                 start_seed,
@@ -625,8 +634,21 @@ class DetectionDetailerScript(scripts.Script):
 
                 else:
                     print(f"No model {label_a} detections for output generation {n} with current settings.")
+
+                    if opts.samples_save:
+                        images.save_image(
+                            init_image,
+                            p.outpath_samples,
+                            "",
+                            start_seed,
+                            p.prompt,
+                            opts.samples_format,
+                            info=info,
+                            p=p,
+                        )
+
             state.job = f"Generation {n + 1} out of {state.job_count}"
-            if dd_info is None:
+            if not dd_info:
                 dd_info = info + ", No detections found."
 
             infotexts.append(dd_info)
