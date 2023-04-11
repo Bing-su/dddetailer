@@ -479,6 +479,8 @@ class DetectionDetailerScript(scripts.Script):
             if opts.enable_pnginfo:
                 init_image.info["parameters"] = info
 
+            p.prompt = info.partition('\n')[0]
+            p.negative_prompt = info.partition('\n')[2][17:]
             output_images.append(init_image)
             masks_a = []
             masks_b_pre = []
