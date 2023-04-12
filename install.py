@@ -5,7 +5,6 @@ from pathlib import Path
 from packaging import version
 
 from launch import (
-    check_run_python,
     extensions_dir,
     is_installed,
     python,
@@ -41,9 +40,6 @@ def check_install() -> bool:
         import mmdet
         from mmdet.evaluation import get_classes
     except Exception:
-        return False
-
-    if not check_run_python("import mmcv, mmdet"):
         return False
 
     if not hasattr(mmcv, "__version__") or not hasattr(mmdet, "__version__"):
