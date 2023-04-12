@@ -1,5 +1,6 @@
 import os
 import sys
+from copy import copy
 
 import cv2
 import gradio as gr
@@ -7,7 +8,6 @@ import numpy as np
 from basicsr.utils.download_util import load_file_from_url
 from PIL import Image
 
-import modules.shared as shared
 from modules import (
     devices,
     images,
@@ -57,7 +57,7 @@ def list_models(model_path):
 
 
 def startup():
-    from launch import is_installed, run, python
+    from launch import is_installed, python, run
 
     if not is_installed("mmdet"):
         run(f'"{python}" -m pip install openmim', desc="Installing openmim", errdesc="Couldn't install openmim")
@@ -104,6 +104,51 @@ startup()
 
 def gr_show(visible=True):
     return {"visible": visible, "__type__": "update"}
+
+
+def ddetailer_extra_generation_params(
+    dd_prompt,
+    dd_neg_prompt,
+    dd_model_a,
+    dd_conf_a,
+    dd_dilation_factor_a,
+    dd_offset_x_a,
+    dd_offset_y_a,
+    dd_preprocess_b,
+    dd_bitwise_op,
+    dd_model_b,
+    dd_conf_b,
+    dd_dilation_factor_b,
+    dd_offset_x_b,
+    dd_offset_y_b,
+    dd_mask_blur,
+    dd_denoising_strength,
+    dd_inpaint_full_res,
+    dd_inpaint_full_res_padding,
+    dd_cfg_scale,
+):
+    params = {
+        "DDetailer prompt": dd_prompt,
+        "DDetailer neg prompt": dd_neg_prompt,
+        "DDetailer model a": dd_model_a,
+        "DDetailer conf a": dd_conf_a,
+        "DDetailer dilation a": dd_dilation_factor_a,
+        "DDetailer offset x a": dd_offset_x_a,
+        "DDetailer offset y a": dd_offset_y_a,
+        "DDetailer preprocess b": dd_preprocess_b,
+        "DDetailer bitwise": dd_bitwise_op,
+        "DDetailer model b": dd_model_b,
+        "DDetailer conf b": dd_conf_b,
+        "DDetailer dilation b": dd_dilation_factor_b,
+        "DDetailer offset x b": dd_offset_x_b,
+        "DDetailer offset y b": dd_offset_y_b,
+        "DDetailer mask blur": dd_mask_blur,
+        "DDetailer denoising": dd_denoising_strength,
+        "DDetailer inpaint full": dd_inpaint_full_res,
+        "DDetailer inpaint padding": dd_inpaint_full_res_padding,
+        "DDetailer cfg": dd_cfg_scale,
+    }
+    return params
 
 
 class DetectionDetailerScript(scripts.Script):
@@ -406,10 +451,8 @@ class DetectionDetailerScript(scripts.Script):
         dd_neg_prompt=None,
     ):
         processing.fix_seed(p)
-        dd_info = ""
         seed = p.seed
-        init_seed = p.seed.copy() if isinstance(p.seed, list) else p.seed
-        init_subseed = p.subseed.copy() if isinstance(p.subseed, list) else p.subseed
+        subseed = p.subseed
         p.batch_size = 1
         ddetail_count = p.n_iter
         p.n_iter = 1
@@ -417,10 +460,34 @@ class DetectionDetailerScript(scripts.Script):
         p.do_not_save_samples = True
         is_txt2img = isinstance(p, StableDiffusionProcessingTxt2Img)
 
+        # ddetailer info
+        extra_generation_params = ddetailer_extra_generation_params(
+            dd_prompt,
+            dd_neg_prompt,
+            dd_model_a,
+            dd_conf_a,
+            dd_dilation_factor_a,
+            dd_offset_x_a,
+            dd_offset_y_a,
+            dd_preprocess_b,
+            dd_bitwise_op,
+            dd_model_b,
+            dd_conf_b,
+            dd_dilation_factor_b,
+            dd_offset_x_b,
+            dd_offset_y_b,
+            dd_mask_blur,
+            dd_denoising_strength,
+            dd_inpaint_full_res,
+            dd_inpaint_full_res_padding,
+            dd_cfg_scale,
+        )
+        p.extra_generation_params.update(extra_generation_params)
+
+        p_txt = copy(p)
         if not is_txt2img:
             orig_image = p.init_images[0]
         else:
-            p_txt = p
             img2img_sampler_name = p_txt.sampler_name
             # PLMS/UniPC do not support img2img so we just silently switch to DDIM
             if p_txt.sampler_name in ["PLMS", "UniPC"]:
@@ -455,17 +522,28 @@ class DetectionDetailerScript(scripts.Script):
                 width=p_txt.width,
                 height=p_txt.height,
                 tiling=p_txt.tiling,
+                extra_generation_params=p_txt.extra_generation_params,
             )
             p.do_not_save_grid = True
             p.do_not_save_samples = True
 
+            p.scripts = p_txt.scripts
+            p.script_args = p_txt.script_args
+
+        # output info
+        all_prompts = []
+        all_negative_prompts = []
+        all_seeds = []
+        all_subseeds = []
         infotexts = []
         output_images = []
+
         state.job_count = ddetail_count
         for n in range(ddetail_count):
             devices.torch_gc()
             start_seed = seed + n
-            dd_info = ""
+            all_seeds.append(start_seed)
+            all_subseeds.append(subseed + n)
 
             if is_txt2img:
                 print(f"Processing initial image for output generation {n + 1}.")
@@ -473,8 +551,12 @@ class DetectionDetailerScript(scripts.Script):
                 processed = processing.process_images(p_txt)
                 init_image = processed.images[0]
                 info = processed.info
+                p.prompt = processed.all_prompts[0]
+                p.negative_prompt = processed.all_negative_prompts[0]
             else:
                 init_image = orig_image
+                p.prompt = p_txt.prompt
+                p.negative_prompt = p_txt.negative_prompt
 
             if opts.enable_pnginfo:
                 init_image.info["parameters"] = info
@@ -523,7 +605,10 @@ class DetectionDetailerScript(scripts.Script):
                                 p=p,
                             )
                         processed = processing.process_images(p)
+                        p.prompt = processed.all_prompts[0]
+                        p.negative_prompt = processed.all_negative_prompts[0]
                         p.seed = processed.seed + 1
+                        p.subseed = processed.subseed + 1
                         p.init_images = processed.images
 
                     if gen_count > 0:
@@ -599,25 +684,17 @@ class DetectionDetailerScript(scripts.Script):
                             )
 
                         processed = processing.process_images(p)
-                        if not dd_info:
-                            dd_info = info + (
-                                f', DDetailer prompt: "{dd_prompt}", DDetailer neg prompt: "{dd_neg_prompt}", '
-                                f'DDetailer model a: "{dd_model_a}", DDetailer conf a: {dd_conf_a}, '
-                                f"DDetailer dilation a: {dd_dilation_factor_a}, DDetailer offset x a: {dd_offset_x_a}, DDetailer offset y a: {dd_offset_y_a}, "
-                                f'DDetailer preprocess b: {dd_preprocess_b}, DDetailer bitwise: {dd_bitwise_op}, DDetailer model b: "{dd_model_b}", '
-                                f"DDetailer conf b: {dd_conf_b}, DDetailer dilation b: {dd_dilation_factor_b}, DDetailer offset x b: {dd_offset_x_b}, "
-                                f"DDetailer offset y b: {dd_offset_y_b}, DDetailer mask blur: {dd_mask_blur}, DDetailer denoising: {dd_denoising_strength}, "
-                                f"DDetailer inpaint full: {dd_inpaint_full_res}, DDetailer inpaint padding: {dd_inpaint_full_res_padding}, "
-                                f"DDetailer cfg: {dd_cfg_scale}"
-                            ).replace("\n", " ")
+                        p.prompt = processed.all_prompts[0]
+                        p.negative_prompt = processed.all_negative_prompts[0]
                         p.seed = processed.seed + 1
+                        p.subseed = processed.subseed + 1
                         p.init_images = processed.images
 
                     if gen_count > 0:
                         final_image = processed.images[0]
 
                         if opts.enable_pnginfo:
-                            final_image.info["parameters"] = dd_info
+                            final_image.info["parameters"] = processed.info
                         output_images[n] = final_image
 
                         if opts.samples_save:
@@ -628,7 +705,7 @@ class DetectionDetailerScript(scripts.Script):
                                 start_seed,
                                 p.prompt,
                                 opts.samples_format,
-                                info=dd_info,
+                                info=info,
                                 p=p,
                             )
 
@@ -648,45 +725,21 @@ class DetectionDetailerScript(scripts.Script):
                         )
 
             state.job = f"Generation {n + 1} out of {state.job_count}"
-            if not dd_info:
-                dd_info = info + ", No detections found."
 
-            infotexts.append(dd_info)
-
-        if not infotexts:
-            infotexts = [dd_info]
-
-        # infotexts
-        if type(p.prompt) == list:
-            p.all_prompts = [shared.prompt_styles.apply_styles_to_prompt(x, p.styles) for x in p.prompt]
-        else:
-            p.all_prompts = p.batch_size * ddetail_count * [shared.prompt_styles.apply_styles_to_prompt(p.prompt, p.styles)]
-
-        if type(p.negative_prompt) == list:
-            p.all_negative_prompts = [shared.prompt_styles.apply_negative_styles_to_prompt(x, p.styles) for x in p.negative_prompt]
-        else:
-            p.all_negative_prompts = p.batch_size * ddetail_count * [shared.prompt_styles.apply_negative_styles_to_prompt(p.negative_prompt, p.styles)]
-
-        if type(init_seed) == list:
-            p.all_seeds = init_seed
-        else:
-            p.all_seeds = [int(init_seed) + (x if p.subseed_strength == 0 else 0) for x in range(len(p.all_prompts))]
-
-        if type(init_subseed) == list:
-            p.all_subseeds = init_subseed
-        else:
-            p.all_subseeds = [int(init_subseed) + x for x in range(len(p.all_prompts))]
+            all_prompts.append(p.prompt)
+            all_negative_prompts.append(p.negative_prompt)
+            infotexts.append(info)
 
         return Processed(
             p,
             output_images,
             seed,
             infotexts[0],
-            all_prompts=p.all_prompts,
-            all_negative_prompts=p.all_negative_prompts,
-            all_seeds=p.all_seeds,
-            all_subseeds=p.all_subseeds,
-            infotexts=infotexts
+            all_prompts=all_prompts,
+            all_negative_prompts=all_negative_prompts,
+            all_seeds=all_seeds,
+            all_subseeds=all_subseeds,
+            infotexts=infotexts,
         )
 
 
