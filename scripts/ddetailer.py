@@ -705,7 +705,7 @@ class DetectionDetailerScript(scripts.Script):
                                 start_seed,
                                 p.prompt,
                                 opts.samples_format,
-                                info=info,
+                                info=processed.info,
                                 p=p,
                             )
 
