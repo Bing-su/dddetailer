@@ -561,7 +561,9 @@ class DetectionDetailerScript(scripts.Script):
             if opts.enable_pnginfo:
                 init_image.info["parameters"] = info
 
+            infotexts.append(info)
             output_images.append(init_image)
+
             masks_a = []
             masks_b_pre = []
 
@@ -692,10 +694,12 @@ class DetectionDetailerScript(scripts.Script):
 
                     if gen_count > 0:
                         final_image = processed.images[0]
+                        final_info = processed.info
 
                         if opts.enable_pnginfo:
-                            final_image.info["parameters"] = processed.info
+                            final_image.info["parameters"] = final_info
                         output_images[n] = final_image
+                        infotexts[n] = final_info
 
                         if opts.samples_save:
                             images.save_image(
@@ -705,7 +709,7 @@ class DetectionDetailerScript(scripts.Script):
                                 start_seed,
                                 p.prompt,
                                 opts.samples_format,
-                                info=processed.info,
+                                info=final_info,
                                 p=p,
                             )
 
@@ -728,7 +732,6 @@ class DetectionDetailerScript(scripts.Script):
 
             all_prompts.append(p.prompt)
             all_negative_prompts.append(p.negative_prompt)
-            infotexts.append(info)
 
         return Processed(
             p,
