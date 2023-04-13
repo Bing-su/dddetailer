@@ -165,7 +165,7 @@ class DetectionDetailerScript(scripts.Script):
         model_list.insert(0, "None")
         if is_img2img:
             info = gr.HTML(
-                '<p style="margin-bottom:0.75em">Recommended settings: Use from inpaint tab, inpaint at full res ON, denoise <0.5</p>'
+                '<p style="margin-bottom:0.75em">Recommended settings: Use from inpaint tab, inpaint at full res ON, denoise < 0.5</p>'
             )
         else:
             info = gr.HTML("")
@@ -459,6 +459,7 @@ class DetectionDetailerScript(scripts.Script):
         p.do_not_save_grid = True
         p.do_not_save_samples = True
         is_txt2img = isinstance(p, StableDiffusionProcessingTxt2Img)
+        info = ""
 
         # ddetailer info
         extra_generation_params = ddetailer_extra_generation_params(
@@ -518,7 +519,7 @@ class DetectionDetailerScript(scripts.Script):
                 sampler_name=img2img_sampler_name,
                 n_iter=p_txt.n_iter,
                 steps=p_txt.steps,
-                cfg_scale=dd_cfg_scale,
+                cfg_scale=p_txt.cfg_scale,
                 width=p_txt.width,
                 height=p_txt.height,
                 tiling=p_txt.tiling,
@@ -542,6 +543,9 @@ class DetectionDetailerScript(scripts.Script):
         for n in range(ddetail_count):
             devices.torch_gc()
             start_seed = seed + n
+
+            all_prompts.append(p_txt.prompt)
+            all_negative_prompts.append(p_txt.negative_prompt)
             all_seeds.append(start_seed)
             all_subseeds.append(subseed + n)
 
@@ -551,12 +555,17 @@ class DetectionDetailerScript(scripts.Script):
                 processed = processing.process_images(p_txt)
                 init_image = processed.images[0]
                 info = processed.info
-                p.prompt = processed.all_prompts[0]
-                p.negative_prompt = processed.all_negative_prompts[0]
+                if not dd_prompt:
+                    p.prompt = processed.all_prompts[0]
+                if not dd_neg_prompt:
+                    p.negative_prompt = processed.all_negative_prompts[0]
+                all_prompts[n] = processed.all_prompts[0]
+                all_negative_prompts[n] = processed.all_negative_prompts[0]
             else:
                 init_image = orig_image
                 p.prompt = p_txt.prompt
                 p.negative_prompt = p_txt.negative_prompt
+            p.cfg_scale = dd_cfg_scale
 
             if opts.enable_pnginfo:
                 init_image.info["parameters"] = info
@@ -607,8 +616,9 @@ class DetectionDetailerScript(scripts.Script):
                                 p=p,
                             )
                         processed = processing.process_images(p)
-                        p.prompt = processed.all_prompts[0]
-                        p.negative_prompt = processed.all_negative_prompts[0]
+                        if not is_txt2img:
+                            p.prompt = processed.all_prompts[0]
+                            p.negative_prompt = processed.all_negative_prompts[0]
                         p.seed = processed.seed + 1
                         p.subseed = processed.subseed + 1
                         p.init_images = processed.images
@@ -686,20 +696,23 @@ class DetectionDetailerScript(scripts.Script):
                             )
 
                         processed = processing.process_images(p)
-                        p.prompt = processed.all_prompts[0]
-                        p.negative_prompt = processed.all_negative_prompts[0]
+                        if not is_txt2img:
+                            p.prompt = processed.all_prompts[0]
+                            p.negative_prompt = processed.all_negative_prompts[0]
+                            info = processed.info
+                            all_prompts[n] = processed.all_prompts[0]
+                            all_negative_prompts[n] = processed.all_negative_prompts[0]
                         p.seed = processed.seed + 1
                         p.subseed = processed.subseed + 1
                         p.init_images = processed.images
 
                     if gen_count > 0:
                         final_image = processed.images[0]
-                        final_info = processed.info
 
                         if opts.enable_pnginfo:
-                            final_image.info["parameters"] = final_info
+                            final_image.info["parameters"] = info
                         output_images[n] = final_image
-                        infotexts[n] = final_info
+                        infotexts[n] = info
 
                         if opts.samples_save:
                             images.save_image(
@@ -709,7 +722,7 @@ class DetectionDetailerScript(scripts.Script):
                                 start_seed,
                                 p.prompt,
                                 opts.samples_format,
-                                info=final_info,
+                                info=info,
                                 p=p,
                             )
 
@@ -729,9 +742,6 @@ class DetectionDetailerScript(scripts.Script):
                         )
 
             state.job = f"Generation {n + 1} out of {state.job_count}"
-
-            all_prompts.append(p.prompt)
-            all_negative_prompts.append(p.negative_prompt)
 
         return Processed(
             p,
