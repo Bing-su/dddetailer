@@ -1,6 +1,7 @@
 import platform
 import sys
 from pathlib import Path
+from textwrap import dedent
 
 from packaging import version
 
@@ -86,7 +87,12 @@ def install():
 
 
 if not check_ddetailer():
-    message = "[-] dddetailer: Please remove the original ddetailer extension and 'stable-diffusion-webui/models/mmdet' folder first."
+    message = """
+    [-] dddetailer: Please remove the following:
+          1. the original ddetailer extension - "stable-diffusion-webui/extensions/ddetailer" folder.
+          2. original model files - "stable-diffusion-webui/models/mmdet" folder.
+    """
+    message = dedent(message)
     raise RuntimeError(message)
 
 if not skip_install:

@@ -10,8 +10,8 @@ AI실사채널 ChatGPT23님의 [ddetailer 수정본](https://arca.live/b/aireal/
 
 ## Installation
 
-1. remove original ddetailer extension
-2. remove original `stable-diffusion-webui/models/mmdet` folder
+1. remove original ddetailer extension - `stable-diffusion-webui/extensions/ddetailer` folder
+2. remove original model files - `stable-diffusion-webui/models/mmdet` folder
 3. install from the extensions tab with url `https://github.com/Bing-su/dddetailer`
 
 ## Problem
