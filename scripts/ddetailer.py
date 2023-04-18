@@ -16,7 +16,7 @@ from modules import (
     scripts,
     shared,
 )
-from modules.paths import models_path
+from modules.paths import data_path, models_path
 from modules.processing import (
     Processed,
     StableDiffusionProcessingImg2Img,
@@ -747,6 +747,11 @@ class DetectionDetailerScript(scripts.Script):
                         )
 
             state.job = f"Generation {n + 1} out of {state.job_count}"
+
+        if dd_prompt or dd_neg_prompt:
+            params_txt = os.path.join(data_path, "params.txt")
+            with open(params_txt, "w", encoding="utf-8") as file:
+                file.write(infotexts[0])
 
         return Processed(
             p,
