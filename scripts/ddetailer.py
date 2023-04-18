@@ -1,5 +1,4 @@
 import os
-import sys
 from copy import copy
 
 import cv2
@@ -24,8 +23,9 @@ from modules.processing import (
     StableDiffusionProcessingTxt2Img,
 )
 from modules.sd_models import model_hash
-from modules.shared import cmd_opts, opts, state
+from modules.shared import opts, state
 
+DETECTION_DETAILER = "Detection Detailer"
 dd_models_path = os.path.join(models_path, "mmdet")
 
 
@@ -147,13 +147,18 @@ def ddetailer_extra_generation_params(
         "DDetailer inpaint full": dd_inpaint_full_res,
         "DDetailer inpaint padding": dd_inpaint_full_res_padding,
         "DDetailer cfg": dd_cfg_scale,
+        "Script": DETECTION_DETAILER,
     }
+    if not dd_prompt:
+        params.pop("DDetailer prompt")
+    if not dd_neg_prompt:
+        params.pop("DDetailer neg prompt")
     return params
 
 
 class DetectionDetailerScript(scripts.Script):
     def title(self):
-        return "Detection Detailer"
+        return DETECTION_DETAILER
 
     def show(self, is_img2img):
         return True
@@ -883,26 +888,26 @@ def combine_masks(masks):
 def on_ui_settings():
     shared.opts.add_option(
         "dd_save_previews",
-        shared.OptionInfo(False, "Save mask previews", section=("ddetailer", "Detection Detailer")),
+        shared.OptionInfo(False, "Save mask previews", section=("ddetailer", DETECTION_DETAILER)),
     )
     shared.opts.add_option(
         "outdir_ddetailer_previews",
         shared.OptionInfo(
             "extensions/ddetailer/outputs/masks-previews",
             "Output directory for mask previews",
-            section=("ddetailer", "Detection Detailer"),
+            section=("ddetailer", DETECTION_DETAILER),
         ),
     )
     shared.opts.add_option(
         "dd_save_masks",
-        shared.OptionInfo(False, "Save masks", section=("ddetailer", "Detection Detailer")),
+        shared.OptionInfo(False, "Save masks", section=("ddetailer", DETECTION_DETAILER)),
     )
     shared.opts.add_option(
         "outdir_ddetailer_masks",
         shared.OptionInfo(
             "extensions/ddetailer/outputs/masks",
             "Output directory for masks",
-            section=("ddetailer", "Detection Detailer"),
+            section=("ddetailer", DETECTION_DETAILER),
         ),
     )
 
