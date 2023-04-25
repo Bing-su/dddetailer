@@ -6,7 +6,6 @@ from textwrap import dedent
 from packaging import version
 
 from launch import (
-    extensions_dir,
     is_installed,
     python,
     run,
@@ -31,8 +30,18 @@ pycocotools = {
 
 
 def check_ddetailer() -> bool:
-    original = Path(extensions_dir, "ddetailer")
-    return not original.exists()
+    try:
+        from launch import extensions_dir
+
+        extensions_path = Path(extensions_dir)
+    except ImportError:
+        from launch import data_path, dir_extensions
+
+        extensions_path = Path(data_path, dir_extensions)
+        UserWarning("[-] dddetailer: You are not using the latest version of stable-diffusion-webui.")
+
+    ddetailer_exists = any(p.is_dir() and p.name.startswith("ddetailer") for p in extensions_path.iterdir())
+    return not ddetailer_exists
 
 
 def check_install() -> bool:

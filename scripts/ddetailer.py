@@ -1,12 +1,16 @@
 import os
 from copy import copy
+from pathlib import Path
+from textwrap import dedent
 
 import cv2
 import gradio as gr
 import numpy as np
 from basicsr.utils.download_util import load_file_from_url
+from packaging.version import parse
 from PIL import Image
 
+from launch import is_installed, python, run
 from modules import (
     devices,
     images,
@@ -27,6 +31,33 @@ from modules.shared import opts, state
 
 DETECTION_DETAILER = "Detection Detailer"
 dd_models_path = os.path.join(models_path, "mmdet")
+
+
+def check_ddetailer() -> bool:
+    try:
+        from launch import extensions_dir
+
+        extensions_path = Path(extensions_dir)
+    except ImportError:
+        from launch import data_path, dir_extensions
+
+        extensions_path = Path(data_path, dir_extensions)
+        UserWarning("[-] dddetailer: You are not using the latest version of stable-diffusion-webui.")
+
+    ddetailer_exists = any(p.is_dir() and p.name.startswith("ddetailer") for p in extensions_path.iterdir())
+    return not ddetailer_exists
+
+
+def check_version():
+    if not is_installed("mmdet"):
+        return False
+
+    try:
+        import mmdet
+
+        return parse(mmdet.__version__) >= parse("3.0.0")
+    except (ImportError, AttributeError):
+        return False
 
 
 def list_models(model_path):
@@ -57,9 +88,14 @@ def list_models(model_path):
 
 
 def startup():
-    from launch import is_installed, python, run
+    if not check_ddetailer():
+        message = """
+        [-] dddetailer: dddetailer doesn't work with the original ddetailer extension.
+                        dddetailer는 원본 ddetailer 확장이 있을 때 동작하지 않습니다.
+        """
+        raise RuntimeError(dedent(message))
 
-    if not is_installed("mmdet"):
+    if not check_version():
         run(f'"{python}" -m pip install openmim', desc="Installing openmim", errdesc="Couldn't install openmim")
         run(
             f'"{python}" -m mim install mmcv>=2.0.0 mmdet>=3.0.0',
