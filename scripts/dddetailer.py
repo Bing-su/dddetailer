@@ -39,10 +39,9 @@ def check_ddetailer() -> bool:
 
         extensions_path = Path(extensions_dir)
     except ImportError:
-        from launch import data_path, dir_extensions
+        from launch import data_path
 
-        extensions_path = Path(data_path, dir_extensions)
-        UserWarning("[-] dddetailer: You are not using the latest version of stable-diffusion-webui.")
+        extensions_path = Path(data_path, "extensions")
 
     ddetailer_exists = any(p.is_dir() and p.name.startswith("ddetailer") for p in extensions_path.iterdir())
     return not ddetailer_exists
