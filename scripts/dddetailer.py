@@ -662,7 +662,7 @@ class DetectionDetailerScript(scripts.Script):
                             p.negative_prompt = processed.all_negative_prompts[0]
                         p.seed = processed.seed + 1
                         p.subseed = processed.subseed + 1
-                        p.init_images = processed.images
+                        p.init_images = [processed.images[0]]
 
                     if gen_count > 0:
                         output_images[n] = processed.images[0]
@@ -745,7 +745,7 @@ class DetectionDetailerScript(scripts.Script):
                             all_negative_prompts[n] = processed.all_negative_prompts[0]
                         p.seed = processed.seed + 1
                         p.subseed = processed.subseed + 1
-                        p.init_images = processed.images
+                        p.init_images = [processed.images[0]]
 
                     if gen_count > 0:
                         final_image = processed.images[0]
