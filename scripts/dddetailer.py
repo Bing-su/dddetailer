@@ -39,7 +39,7 @@ def check_ddetailer() -> bool:
 
         extensions_path = Path(extensions_dir)
     except ImportError:
-        from launch import data_path
+        from modules.paths import data_path
 
         extensions_path = Path(data_path, "extensions")
 
