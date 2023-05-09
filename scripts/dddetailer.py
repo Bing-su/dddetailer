@@ -933,7 +933,7 @@ def on_ui_settings():
     shared.opts.add_option(
         "outdir_ddetailer_previews",
         shared.OptionInfo(
-            "extensions/ddetailer/outputs/masks-previews",
+            "extensions/dddetailer/outputs/masks-previews",
             "Output directory for mask previews",
             section=("ddetailer", DETECTION_DETAILER),
         ),
@@ -945,7 +945,7 @@ def on_ui_settings():
     shared.opts.add_option(
         "outdir_ddetailer_masks",
         shared.OptionInfo(
-            "extensions/ddetailer/outputs/masks",
+            "extensions/dddetailer/outputs/masks",
             "Output directory for masks",
             section=("ddetailer", DETECTION_DETAILER),
         ),
