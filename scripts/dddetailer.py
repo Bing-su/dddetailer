@@ -27,7 +27,7 @@ from modules.processing import (
     StableDiffusionProcessingTxt2Img,
 )
 from modules.sd_models import model_hash
-from modules.shared import opts, state
+from modules.shared import cmd_opts, opts, state
 
 DETECTION_DETAILER = "Detection Detailer"
 dd_models_path = os.path.join(models_path, "mmdet")
@@ -968,7 +968,12 @@ from mmdet.evaluation import get_classes
 
 
 def get_device():
-    return devices.get_optimal_device_name()
+    device = devices.get_optimal_device_name()
+    if device == "mps":
+        return device
+    if any(getattr(cmd_opts, vram, False) for vram in ["lowvram", "medvram"]):
+        return "cpu"
+    return device
 
 
 def inference(image, modelname, conf_thres, label):
@@ -986,9 +991,9 @@ def inference_mmdet_segm(image, modelname, conf_thres, label):
     model_device = get_device()
     model = init_detector(model_config, model_checkpoint, device=model_device)
     mmdet_results = inference_detector(model, np.array(image)).pred_instances
-    bboxes = mmdet_results.bboxes.numpy()
-    segms = mmdet_results.masks.numpy()
-    scores = mmdet_results.scores.numpy()
+    bboxes = mmdet_results.bboxes.cpu().numpy()
+    segms = mmdet_results.masks.cpu().numpy()
+    scores = mmdet_results.scores.cpu().numpy()
     dataset = modeldataset(modelname)
     classes = get_classes(dataset)
 
@@ -1027,8 +1032,8 @@ def inference_mmdet_bbox(image, modelname, conf_thres, label):
     n, m = output.bboxes.shape
     if n == 0:
         return [[], [], [], []]
-    bboxes = output.bboxes.numpy()
-    scores = output.scores.numpy()
+    bboxes = output.bboxes.cpu().numpy()
+    scores = output.scores.cpu().numpy()
     filter_inds = np.where(scores > conf_thres)[0]
     results = [[], [], [], []]
     for i in filter_inds:
