@@ -968,9 +968,7 @@ from mmdet.evaluation import get_classes
 
 
 def get_device():
-    device_id = shared.cmd_opts.device_id
-    cuda_device = f"cuda:{device_id}" if device_id is not None else "cpu"
-    return cuda_device
+    return devices.get_optimal_device_name()
 
 
 def inference(image, modelname, conf_thres, label):
