@@ -1,4 +1,5 @@
 import os
+import sys
 from copy import copy
 from pathlib import Path
 from textwrap import dedent
@@ -10,7 +11,7 @@ from basicsr.utils.download_util import load_file_from_url
 from packaging.version import parse
 from PIL import Image
 
-from launch import is_installed, python, run
+from launch import run
 from modules import (
     devices,
     images,
@@ -31,11 +32,12 @@ from modules.shared import cmd_opts, opts, state
 
 DETECTION_DETAILER = "Detection Detailer"
 dd_models_path = os.path.join(models_path, "mmdet")
+python = sys.executable
 
 
 def check_ddetailer() -> bool:
     try:
-        from launch import extensions_dir
+        from modules.paths import extensions_dir
 
         extensions_path = Path(extensions_dir)
     except ImportError:
@@ -47,16 +49,20 @@ def check_ddetailer() -> bool:
     return not ddetailer_exists
 
 
-def check_version():
-    if not is_installed("mmdet"):
-        return False
-
+def check_install() -> bool:
     try:
+        import mmcv
         import mmdet
-
-        return parse(mmdet.__version__) >= parse("3.0.0")
-    except (ImportError, AttributeError):
+        from mmdet.evaluation import get_classes
+    except Exception:
         return False
+
+    if not hasattr(mmcv, "__version__") or not hasattr(mmdet, "__version__"):
+        return False
+
+    v1 = parse(mmcv.__version__) >= parse("2.0.0")
+    v2 = parse(mmdet.__version__) >= parse("3.0.0")
+    return v1 and v2
 
 
 def list_models(model_path):
@@ -94,7 +100,8 @@ def startup():
         """
         raise RuntimeError(dedent(message))
 
-    if not check_version():
+    if not check_install():
+        run(f'"{python}" -m pip uninstall -y mmcv mmcv-full mmdet mmengine')
         run(f'"{python}" -m pip install openmim', desc="Installing openmim", errdesc="Couldn't install openmim")
         run(
             f'"{python}" -m mim install mmcv>=2.0.0 mmdet>=3.0.0',

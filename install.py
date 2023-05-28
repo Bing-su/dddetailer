@@ -9,9 +9,9 @@ import launch
 from launch import is_installed, run, run_pip
 
 try:
-    skip_install = getattr(launch.args, "skip_install")
+    skip_install = launch.args.skip_install
 except Exception:
-    skip_install = getattr(launch, "skip_install", False)
+    skip_install = False
 
 python = sys.executable
 
@@ -33,7 +33,7 @@ pycocotools = {
 
 def check_ddetailer() -> bool:
     try:
-        from launch import extensions_dir
+        from modules.paths import extensions_dir
 
         extensions_path = Path(extensions_dir)
     except ImportError:
