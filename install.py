@@ -1,4 +1,3 @@
-import platform
 import sys
 from pathlib import Path
 from textwrap import dedent
@@ -14,22 +13,6 @@ except Exception:
     skip_install = False
 
 python = sys.executable
-
-pycocotools = {
-    "Windows": {
-        (3, 8): "https://github.com/Bing-su/dddetailer/releases/download/pycocotools/pycocotools-2.0.6-cp38-cp38-win_amd64.whl",
-        (3, 9): "https://github.com/Bing-su/dddetailer/releases/download/pycocotools/pycocotools-2.0.6-cp39-cp39-win_amd64.whl",
-        (3, 10): "https://github.com/Bing-su/dddetailer/releases/download/pycocotools/pycocotools-2.0.6-cp310-cp310-win_amd64.whl",
-        (3, 11): "https://github.com/Bing-su/dddetailer/releases/download/pycocotools/pycocotools-2.0.6-cp311-cp311-win_amd64.whl",
-    },
-    "Linux": {
-        (3, 8): "https://github.com/Bing-su/dddetailer/releases/download/pycocotools/pycocotools-2.0.6-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
-        (3, 9): "https://github.com/Bing-su/dddetailer/releases/download/pycocotools/pycocotools-2.0.6-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
-        (3, 10): "https://github.com/Bing-su/dddetailer/releases/download/pycocotools/pycocotools-2.0.6-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
-        (3, 11): "https://github.com/Bing-su/dddetailer/releases/download/pycocotools/pycocotools-2.0.6-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
-    },
-}
-
 
 def check_ddetailer() -> bool:
     try:
@@ -61,30 +44,9 @@ def check_install() -> bool:
     return v1 and v2
 
 
-def install_pycocotools():
-    system = platform.system()
-    machine = platform.machine()
-
-    if system not in ["Windows", "Linux"] or machine not in ["AMD64", "x86_64"]:
-        print("Installing pycocotools from pypi...")
-        run(f'"{python}" -m pip install pycocotools', live=True)
-        return
-
-    links = pycocotools[system]
-    version = sys.version_info[:2]
-    if version not in links:
-        print("Installing pycocotools from pypi...")
-        run(f'"{python}" -m pip install pycocotools', live=True)
-        return
-
-    url = links[version]
-    print("Installing pycocotools...")
-    run(f'"{python}" -m pip install {url}', live=True)
-
-
 def install():
     if not is_installed("pycocotools"):
-        install_pycocotools()
+        run(f'{python} -m pip install --extra-index-url https://bing-su.github.io/mypypi/ pycocotools', live=True)
 
     if not is_installed("mim"):
         run_pip("install openmim", desc="openmim")
