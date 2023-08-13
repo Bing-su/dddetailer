@@ -574,6 +574,8 @@ class DetectionDetailerScript(scripts.Script):
             )
             p.do_not_save_grid = True
             p.do_not_save_samples = True
+            p.cached_c = [None, None]
+            p.cached_uc = [None, None]
 
             p.scripts = p_txt.scripts
             p.script_args = p_txt.script_args
