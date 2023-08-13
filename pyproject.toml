@@ -1,6 +1,6 @@
 [project]
 name = "dddetailer"
-version = "23.5.1"
+version = "23.8.0"
 description = "An object detection and auto-mask extension for Stable Diffusion web UI."
 authors = [
     {name = "dowon", email = "ks2515@naver.com"},
