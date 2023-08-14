@@ -46,7 +46,7 @@ def check_install() -> bool:
 
 def install():
     if not is_installed("pycocotools"):
-        run(f'{python} -m pip install --extra-index-url https://bing-su.github.io/mypypi/ pycocotools', live=True)
+        run(f"{python} -m pip install pycocotools", live=True)
 
     if not is_installed("mim"):
         run_pip("install openmim", desc="openmim")
